@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPI - Rantai Makanan | Kemenag RI</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter (UI) & Amiri (Arabic) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- html2pdf for Report Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- Tone.js for Audio Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        arabic: ['Amiri', 'serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        },
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar & Utils */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #059669; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #047857; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .islamic-bg {
+            background-color: #ecfdf5;
+            background-image: radial-gradient(#10b981 0.5px, transparent 0.5px), radial-gradient(#10b981 0.5px, #ecfdf5 0.5px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            opacity: 0.8;
+        }
+
+        .hide { display: none !important; }
+        .text-justify { text-align: justify; text-justify: inter-word; }
+        
+        /* Mobile Tap Highlights */
+        * { -webkit-tap-highlight-color: transparent; }
+        
+        /* Print Styles */
+        @media print {
+            .no-print { display: none !important; }
+            .print-break-inside-avoid { break-inside: avoid; }
+        }
+
+        /* Marquee Animation */
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            width: 100%;
+            background: #064e3b; /* emerald-900 */
+            color: #d1fae5; /* emerald-100 */
+            padding: 0.5rem 0;
+            z-index: 100;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+        .marquee-content {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+    </style>
+</head>
+<body class="bg-emerald-50 text-gray-800 font-sans h-screen w-screen overflow-hidden selection:bg-emerald-200 selection:text-emerald-900 flex flex-col">
+
+    <!-- Global Dialog Overlay (Replaces alert) -->
+    <div id="global-dialog" class="fixed inset-0 z-[100] hide flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full transform transition-all text-center animate-slide-up">
+            <div id="dialog-icon" class="text-4xl mb-4 text-emerald-600"><i class="fas fa-info-circle"></i></div>
+            <h3 id="dialog-title" class="text-xl font-bold mb-2 text-gray-800">Pesan</h3>
+            <p id="dialog-message" class="text-gray-600 mb-6"></p>
+            <button onclick="closeDialog()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl transition-colors shadow-md">
+                Mengerti
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="relative w-full flex-1 max-w-5xl mx-auto shadow-2xl overflow-hidden bg-white sm:rounded-none md:rounded-t-3xl md:mt-4 md:mb-0 border-0 md:border-4 md:border-b-0 border-emerald-100 relative">
+        
+        <!-- Audio Toggle Button -->
+        <button onclick="toggleBGM()" class="absolute top-4 right-4 z-[90] bg-white/80 backdrop-blur shadow-md rounded-full w-10 h-10 flex items-center justify-center text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200" title="Nyalakan/Matikan Suara">
+            <i id="bgm-icon" class="fas fa-volume-mute"></i>
+        </button>
+
+        <!-- 1. SPLASH SCREEN -->
+        <section id="screen-splash" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-emerald-600 to-emerald-900 text-white transition-opacity duration-500">
+            <i class="fas fa-leaf text-6xl text-gold-400 mb-6 animate-float"></i>
+            <h1 class="text-3xl md:text-4xl font-bold tracking-wider mb-2">MPI IPA SD/MI</h1>
+            <p class="text-emerald-200 font-medium tracking-widest uppercase text-sm">Kurikulum Berbasis Cinta</p>
+            <div class="mt-8 flex space-x-2">
+                <div class="w-3 h-3 bg-gold-400 rounded-full animate-bounce"></div>
+                <div class="w-3 h-3 bg-gold-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-3 h-3 bg-gold-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+        </section>
+
+        <!-- 2. COVER SCREEN -->
+        <section id="screen-cover" class="absolute inset-0 z-40 hide flex flex-col items-center justify-between p-6 bg-gradient-to-br from-emerald-50 to-white islamic-bg">
+            <div class="text-center mt-8 animate-slide-up">
+                <span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full mb-3 shadow-sm border border-emerald-200">
+                    <i class="fas fa-book-open mr-1"></i> IPA Kelas V / Fase C
+                </span>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-emerald-800 mb-2 drop-shadow-sm">Rantai Makanan</h1>
+                <p class="text-gray-600 text-sm md:text-base font-medium">Harmoni Ekosistem & Tanda Kebesaran Allah</p>
+            </div>
+
+            <!-- SVG Visual -->
+            <div class="flex-1 w-full max-w-md flex items-center justify-center animate-float">
+                <svg viewBox="0 0 200 200" class="w-64 h-64 md:w-80 md:h-80 drop-shadow-xl">
+                    <circle cx="100" cy="100" r="95" fill="#d1fae5" stroke="#10b981" stroke-width="4"/>
+                    <!-- Sun -->
+                    <circle cx="50" cy="50" r="15" fill="#fbbf24"/>
+                    <path d="M50 20 L50 10 M50 80 L50 90 M20 50 L10 50 M80 50 L90 50" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
+                    <!-- Plant (Producer) -->
+                    <path d="M40 150 Q50 120 60 150" fill="#10b981"/>
+                    <path d="M50 150 L50 120" stroke="#047857" stroke-width="3"/>
+                    <circle cx="50" cy="120" r="10" fill="#10b981"/>
+                    <!-- Arrow 1 -->
+                    <path d="M70 135 L90 120" stroke="#6b7280" stroke-width="3" stroke-dasharray="4" marker-end="url(#arrow)"/>
+                    <!-- Grasshopper (Consumer 1) -->
+                    <rect x="100" y="105" width="20" height="10" rx="5" fill="#f59e0b"/>
+                    <!-- Arrow 2 -->
+                    <path d="M125 110 L145 95" stroke="#6b7280" stroke-width="3" stroke-dasharray="4" marker-end="url(#arrow)"/>
+                    <!-- Bird (Consumer 2) -->
+                    <circle cx="155" cy="80" r="12" fill="#3b82f6"/>
+                    <path d="M165 80 L175 75 L165 85 Z" fill="#fbbf24"/>
+                    <defs>
+                        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280" />
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+
+            <div class="w-full max-w-sm space-y-4 mb-8 animate-slide-up" style="animation-delay: 0.2s">
+                <button onclick="nav('login')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 text-lg flex items-center justify-center">
+                    <i class="fas fa-play mr-2"></i> MULAI BELAJAR
+                </button>
+                <div class="flex space-x-4">
+                    <button onclick="openModal('modal-tujuan')" class="flex-1 bg-white hover:bg-gray-50 text-emerald-700 font-semibold py-3 px-4 rounded-xl shadow border border-emerald-100 transition-colors text-sm flex flex-col items-center">
+                        <i class="fas fa-bullseye mb-1"></i> Tujuan
+                    </button>
+                    <button onclick="openModal('modal-dev')" class="flex-1 bg-white hover:bg-gray-50 text-emerald-700 font-semibold py-3 px-4 rounded-xl shadow border border-emerald-100 transition-colors text-sm flex flex-col items-center">
+                        <i class="fas fa-user-tie mb-1"></i> Profil
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Floating Modal: Developer Info -->
+        <div id="modal-dev" class="fixed inset-0 z-[60] hide flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 opacity-0 transition-opacity">
+            <div class="glass-panel rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl relative">
+                <div class="absolute -top-12 left-1/2 transform -translate-x-1/2">
+                    <div class="w-24 h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-emerald-100 flex items-center justify-center">
+                        <!-- URL updated to new iili.io image -->
+                        <img src="https://iili.io/n8IecB9.png" alt="Developer" class="w-full h-full object-cover" onerror="this.outerHTML='<span class=\'text-3xl font-bold text-emerald-700\'>CM</span>'">
+                    </div>
+                </div>
+                <div class="mt-14">
+                    <h3 class="text-xl font-bold text-gray-800">Cinrianingsih Mahajani, S.Pd</h3>
+                    <p class="text-sm text-emerald-600 font-medium mb-4"><i class="fas fa-school mr-1"></i> MIN 1 Kota Gorontalo</p>
+                    <div class="bg-emerald-50 rounded-xl p-3 text-sm text-gray-700 mb-6 border border-emerald-100 inline-block">
+                        <i class="fas fa-envelope text-emerald-500 mr-2"></i> cindrianingsihm@gmail.com
+                    </div>
+                    <button onclick="closeModal('modal-dev')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-xl transition-colors">
+                        Kembali ke Cover
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Modal: Tujuan Pembelajaran -->
+        <div id="modal-tujuan" class="fixed inset-0 z-[60] hide flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 opacity-0 transition-opacity">
+            <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl overflow-y-auto max-h-[80vh]">
+                <h3 class="text-xl font-bold text-emerald-800 mb-4 border-b-2 border-emerald-100 pb-2">
+                    <i class="fas fa-bullseye text-gold-500 mr-2"></i>Tujuan Pembelajaran
+                </h3>
+                <p class="text-gray-700 text-justify mb-4 text-base md:text-lg leading-relaxed">
+                    Murid dapat <strong>Menganalisis Hubungan antar Komponen Biotik dan Abiotik</strong>, serta pengaruhnya terhadap Ekosistem untuk menumbuhkan rasa syukur dan tanggung jawab menjaga kelestarian ekosistem sebagai bentuk <strong>Cinta Allah SWT dan Lingkungan</strong>.
+                </p>
+                <div class="bg-emerald-50 rounded-xl p-4 mb-6 border border-emerald-100">
+                    <p class="text-center font-arabic text-2xl text-emerald-900 mb-3" dir="rtl">
+                        وَهُوَ الَّذِي أَنْزَلَ مِنَ السَّمَاءِ مَاءً فَأَخْرَجْنَا بِهِ نَبَاتَ كُلِّ شَيْءٍ
+                    </p>
+                    <p class="text-sm md:text-base text-gray-600 text-center italic">
+                        "Dan Dialah yang menurunkan air hujan dari langit, lalu Kami tumbuhkan dengan air itu segala macam tumbuh-tumbuhan..." (QS. Al-An'am: 99)
+                    </p>
+                </div>
+                <button onclick="closeModal('modal-tujuan')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-xl transition-colors text-lg">
+                    Kembali ke Cover
+                </button>
+            </div>
+        </div>
+
+        <!-- Floating Modal: Referensi -->
+        <div id="modal-referensi" class="fixed inset-0 z-[60] hide flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 opacity-0 transition-opacity">
+            <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl overflow-y-auto max-h-[80vh]">
+                <h3 class="text-xl font-bold text-emerald-800 mb-4 border-b-2 border-emerald-100 pb-2">
+                    <i class="fas fa-book text-purple-500 mr-2"></i>Daftar Referensi
+                </h3>
+                <ul class="list-disc text-gray-700 text-base md:text-lg leading-relaxed space-y-3 mb-6 ml-5">
+                    <li>Kementerian Pendidikan Dasar dan Menengah (Kemendikdasmen). <em>Buku IPA</em>.</li>
+                    <li>Kementerian Pendidikan Dasar dan Menengah (Kemendikdasmen). <em>Buku Panduan Mata Pelajaran</em>.</li>
+                    <li><em>Buku IPAS</em>. Penerbit Airlangga.</li>
+                    <li>Kementerian Agama RI. <em>Al-Qur'an dan Terjemahannya</em>.</li>
+                    <li>Modul Kurikulum Berbasis Cinta (KBC), Edukasi Cinta Alam dan Lingkungan.</li>
+                    <li>Observasi Ekosistem Lokal (Teluk Tomini, Danau Limboto) Provinsi Gorontalo.</li>
+                </ul>
+                <button onclick="closeModal('modal-referensi')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-xl transition-colors text-lg">
+                    Tutup
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. LOGIN SCREEN (Identitas) -->
+        <section id="screen-login" class="absolute inset-0 z-30 hide flex flex-col bg-white">
+            <div class="flex-1 flex flex-col items-center justify-center p-6 bg-emerald-600 rounded-b-[3rem] shadow-lg relative overflow-hidden">
+                <i class="fas fa-seedling text-white/20 text-[10rem] absolute -bottom-10 -right-10"></i>
+                <h2 class="text-3xl font-bold text-white mb-2 z-10">Data Diri</h2>
+                <p class="text-emerald-100 text-center text-sm max-w-xs z-10">Mari mulai petualangan belajarmu dengan mengisi data di bawah ini.</p>
+            </div>
+            <div class="flex-1 flex flex-col justify-start p-8 -mt-6">
+                <div class="glass-panel p-6 rounded-2xl shadow-xl w-full max-w-sm mx-auto z-20 bg-white">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-base font-bold mb-2" for="studentName">Nama Lengkap</label>
+                        <input id="studentName" type="text" placeholder="Masukkan namamu..." class="shadow-sm appearance-none border border-gray-200 rounded-xl w-full py-3 px-4 text-gray-700 text-lg leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-base font-bold mb-2" for="studentClass">Kelas</label>
+                        <select id="studentClass" class="shadow-sm appearance-none border border-gray-200 rounded-xl w-full py-3 px-4 text-gray-700 text-lg leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all bg-white">
+                            <option value="">Pilih Kelas...</option>
+                            <option value="V A">Kelas V A</option>
+                            <option value="V B">Kelas V B</option>
+                            <option value="V C">Kelas V C</option>
+                        </select>
+                    </div>
+                    <button onclick="processLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-colors flex items-center justify-center">
+                        Lanjut <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                    <button onclick="nav('cover')" class="w-full mt-3 bg-white text-gray-500 hover:text-gray-700 text-sm py-2 px-4 rounded-xl transition-colors">
+                        Kembali
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. ONBOARDING SLIDES -->
+        <section id="screen-onboarding" class="absolute inset-0 z-30 hide flex flex-col bg-emerald-50">
+            <div class="flex-1 overflow-y-auto p-6 flex flex-col justify-center items-center">
+                
+                <div id="onb-slide-1" class="onb-slide text-center animate-slide-up w-full max-w-md">
+                    <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-md mb-6 text-emerald-500 text-4xl">
+                        <i class="fas fa-hand-sparkles"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-emerald-800 mb-3">Selamat Datang, <span id="display-name-onb" class="text-gold-500">Siswa</span>!</h2>
+                    <p class="text-gray-600 text-base md:text-lg leading-relaxed">Di Media Pembelajaran Interaktif <strong>Rantai Makanan</strong>. Siap menjelajah keajaiban alam ciptaan Allah?</p>
+                </div>
+
+                <div id="onb-slide-2" class="onb-slide hide text-center animate-slide-up w-full max-w-md">
+                    <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-md mb-6 text-blue-500 text-4xl">
+                        <i class="fas fa-map-marked-alt"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-emerald-800 mb-3">Jelajahi Gorontalo</h2>
+                    <p class="text-gray-600 text-base md:text-lg leading-relaxed">Kita akan belajar rantai makanan dengan melihat alam sekitar kita, mulai dari pesisir Teluk Tomini hingga Danau Limboto.</p>
+                </div>
+
+                <div id="onb-slide-3" class="onb-slide hide text-center animate-slide-up w-full max-w-md">
+                    <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-md mb-6 text-red-500 text-4xl">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-emerald-800 mb-3">Belajar Bertahap</h2>
+                    <p class="text-gray-600 text-base md:text-lg leading-relaxed">Selesaikan menu <strong>Belajar</strong> untuk membuka menu <strong>Bermain</strong>, lalu menu <strong>Berlatih</strong>. Kumpulkan nilaimu di akhir petualangan!</p>
+                </div>
+
+            </div>
+            
+            <!-- Onboarding Controls -->
+            <div class="bg-white p-4 border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-between items-center z-10">
+                <div class="flex space-x-1">
+                    <div id="dot-1" class="w-2 h-2 rounded-full bg-emerald-600"></div>
+                    <div id="dot-2" class="w-2 h-2 rounded-full bg-gray-300"></div>
+                    <div id="dot-3" class="w-2 h-2 rounded-full bg-gray-300"></div>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="btn-onb-prev" onclick="changeOnboarding(-1)" class="px-4 py-2 text-emerald-600 font-medium disabled:opacity-30">Kembali</button>
+                    <button id="btn-onb-next" onclick="changeOnboarding(1)" class="px-6 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow-md">Lanjut</button>
+                    <button id="btn-onb-start" onclick="nav('mainmenu')" class="px-6 py-2 bg-gold-500 hover:bg-gold-400 text-white font-bold rounded-xl shadow-md hide">Mulai <i class="fas fa-rocket ml-1"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. MAIN MENU (Dashboard) -->
+        <section id="screen-mainmenu" class="absolute inset-0 z-20 hide flex flex-col bg-gray-50">
+            <!-- Header Profile -->
+            <header class="bg-emerald-600 text-white p-4 flex justify-between items-center shadow-md z-10 rounded-b-3xl">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3 backdrop-blur-sm border border-white/40">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div>
+                        <h3 id="dash-name" class="font-bold text-sm leading-tight">Nama</h3>
+                        <p id="dash-class" class="text-xs text-emerald-100">Kelas</p>
+                    </div>
+                </div>
+                <button onclick="confirmExit()" class="text-white/80 hover:text-white p-2">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </header>
+
+            <!-- Cards Container -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                <h2 class="text-xl font-bold text-gray-800 mb-2">Pilih Petualanganmu</h2>
+                
+                <!-- Menu 1: Belajar (Unlocked) -->
+                <div onclick="startModule('belajar')" class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-2 h-full bg-emerald-500"></div>
+                    <div class="flex items-center">
+                        <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-2xl shadow-inner mr-4 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-book-reader"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">1. Belajar</h3>
+                            <p class="text-xs text-gray-500 mt-1">Eksplorasi materi & hikmah alam</p>
+                        </div>
+                    </div>
+                    <div class="text-emerald-500"><i class="fas fa-chevron-right"></i></div>
+                </div>
+
+                <!-- Menu 2: Bermain (Locked by default) -->
+                <div id="card-bermain" onclick="checkLock('bermain')" class="bg-gray-100 rounded-2xl p-5 shadow-sm border border-gray-200 flex items-center justify-between cursor-pointer opacity-70 relative">
+                    <div class="flex items-center">
+                        <div class="w-14 h-14 bg-gray-200 text-gray-400 rounded-xl flex items-center justify-center text-2xl mr-4">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-700">2. Bermain</h3>
+                            <p class="text-xs text-gray-500 mt-1">Tantangan literasi interaktif</p>
+                        </div>
+                    </div>
+                    <div class="text-gray-400 text-xl"><i class="fas fa-lock"></i></div>
+                </div>
+
+                <!-- Menu 3: Berlatih (Locked by default) -->
+                <div id="card-berlatih" onclick="checkLock('berlatih')" class="bg-gray-100 rounded-2xl p-5 shadow-sm border border-gray-200 flex items-center justify-between cursor-pointer opacity-70 relative">
+                    <div class="flex items-center">
+                        <div class="w-14 h-14 bg-gray-200 text-gray-400 rounded-xl flex items-center justify-center text-2xl mr-4">
+                            <i class="fas fa-pen-alt"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-700">3. Berlatih</h3>
+                            <p class="text-xs text-gray-500 mt-1">Asesmen akhir & cetak laporan</p>
+                        </div>
+                    </div>
+                    <div class="text-gray-400 text-xl"><i class="fas fa-lock"></i></div>
+                </div>
+
+                <!-- Menu 4: Referensi -->
+                <div onclick="openModal('modal-referensi')" class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="flex items-center">
+                        <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-inner mr-4 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">4. Referensi</h3>
+                            <p class="text-xs text-gray-500 mt-1">Daftar pustaka & sumber materi</p>
+                        </div>
+                    </div>
+                    <div class="text-purple-500 text-xl"><i class="fas fa-chevron-right"></i></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. MODULE CONTAINER (Belajar/Bermain/Berlatih use this shell) -->
+        <section id="screen-module" class="absolute inset-0 z-30 hide flex flex-col bg-white">
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-200 p-3 flex justify-between items-center shadow-sm z-10 sticky top-0">
+                <button onclick="nav('mainmenu')" class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="text-center">
+                    <h2 id="module-title" class="font-bold text-emerald-800 text-sm uppercase tracking-wide">Modul</h2>
+                    <div class="text-xs text-gray-500 font-medium"><span id="module-progress">1/7</span></div>
+                </div>
+                <div class="w-10 h-10"></div> <!-- Balancer -->
+            </header>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 h-1.5">
+                <div id="module-progress-bar" class="bg-emerald-500 h-1.5 transition-all duration-300 w-[10%]"></div>
+            </div>
+
+            <!-- Content Area (Scrollable) -->
+            <div id="module-content" class="flex-1 overflow-y-auto p-5 bg-gray-50 pb-24">
+                <!-- Content injected via JS -->
+            </div>
+
+            <!-- Footer Controls -->
+            <footer class="bg-white border-t p-4 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] absolute bottom-0 w-full z-10">
+                <button id="mod-btn-prev" onclick="modNav(-1)" class="px-5 py-3 text-base bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50">
+                    <i class="fas fa-chevron-left mr-1"></i> Kembali
+                </button>
+                <button id="mod-btn-next" onclick="modNav(1)" class="px-6 py-3 text-base bg-emerald-600 text-white font-bold rounded-xl shadow-md hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:bg-gray-400">
+                    Lanjut <i class="fas fa-chevron-right ml-1"></i>
+                </button>
+            </footer>
+        </section>
+
+        <!-- 7. REPORT SCREEN -->
+        <section id="screen-report" class="absolute inset-0 z-40 hide flex flex-col bg-gray-100">
+            <header class="bg-emerald-600 text-white p-4 flex justify-between items-center shadow-md z-10 rounded-b-3xl no-print">
+                <button onclick="nav('mainmenu')" class="text-white/80 hover:text-white"><i class="fas fa-home text-xl"></i></button>
+                <h2 class="font-bold">Laporan Hasil Belajar</h2>
+                <div class="w-6"></div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center no-print">
+                <!-- A4 Paper Container -->
+                <div id="pdf-content" class="bg-white w-full max-w-[210mm] min-h-[297mm] shadow-lg md:shadow-2xl rounded-sm p-8 md:p-12 text-sm text-gray-800 relative">
+                    
+                    <!-- Kop (Header) -->
+                    <div class="border-b-4 border-emerald-700 pb-4 mb-6 flex items-center justify-between">
+                        <div class="flex-1">
+                            <h1 class="text-xl md:text-2xl font-bold text-emerald-900 uppercase">Laporan Hasil Asesmen MPI</h1>
+                            <h2 class="text-md font-semibold text-gray-700">Materi: Rantai Makanan (IPA Kelas V)</h2>
+                            <p class="text-xs text-gray-500 mt-1">Pengembang: Cinrianingsih Mahajani, S.Pd (MIN 1 Kota Gorontalo)</p>
+                        </div>
+                        <!-- Logo/Icon (SVG since no external images) -->
+                        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 text-3xl">
+                            <i class="fas fa-award"></i>
+                        </div>
+                    </div>
+
+                    <!-- Student Data -->
+                    <div class="bg-gray-50 border border-gray-200 p-4 rounded-lg mb-6 flex flex-wrap gap-4 justify-between">
+                        <div><span class="text-gray-500 text-xs block">Nama Siswa</span><strong id="rep-name" class="text-base uppercase"></strong></div>
+                        <div><span class="text-gray-500 text-xs block">Kelas</span><strong id="rep-class" class="text-base"></strong></div>
+                        <div><span class="text-gray-500 text-xs block">Tanggal</span><strong id="rep-date" class="text-base"></strong></div>
+                    </div>
+
+                    <!-- Section: Bermain -->
+                    <h3 class="font-bold text-emerald-800 border-b border-emerald-200 pb-1 mb-3"><i class="fas fa-gamepad mr-2 text-emerald-500"></i>Rekapitulasi Bermain (Literasi)</h3>
+                    <p class="mb-4">Tantangan literasi diselesaikan dengan ketuntasan: <strong id="rep-bermain-score" class="text-emerald-700 text-lg">10/10</strong> modul.</p>
+
+                    <!-- Section: Berlatih -->
+                    <h3 class="font-bold text-emerald-800 border-b border-emerald-200 pb-1 mb-3 mt-6"><i class="fas fa-pen-alt mr-2 text-emerald-500"></i>Hasil Asesmen Berlatih</h3>
+                    
+                    <div class="flex items-center justify-center mb-6">
+                        <div class="text-center bg-emerald-50 p-6 rounded-full border-4 border-emerald-200 w-32 h-32 flex flex-col items-center justify-center shadow-inner">
+                            <span class="text-xs text-emerald-600 font-bold mb-1">NILAI AKHIR</span>
+                            <span id="rep-final-score" class="text-4xl font-extrabold text-emerald-700">0</span>
+                        </div>
+                    </div>
+
+                    <table class="w-full text-left border-collapse mb-6 print-break-inside-avoid">
+                        <thead>
+                            <tr class="bg-emerald-100 text-emerald-800 text-xs uppercase tracking-wide">
+                                <th class="p-3 border border-emerald-200">Aspek / Level Kognitif</th>
+                                <th class="p-3 border border-emerald-200 text-center">Bobot</th>
+                                <th class="p-3 border border-emerald-200 text-center">Skor Diperoleh</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="p-3 border border-gray-200"><span class="font-semibold text-blue-600">Level 1 (Dasar/Pemahaman)</span><br><span class="text-xs text-gray-500">Soal 1-3 (Fakta & Konsep Dasar)</span></td>
+                                <td class="p-3 border border-gray-200 text-center">24</td>
+                                <td id="rep-l1-score" class="p-3 border border-gray-200 text-center font-bold">0</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 border border-gray-200"><span class="font-semibold text-yellow-600">Level 2 (Sedang/Aplikasi)</span><br><span class="text-xs text-gray-500">Soal 4-7 (Penerapan Konteks Lokal)</span></td>
+                                <td class="p-3 border border-gray-200 text-center">40</td>
+                                <td id="rep-l2-score" class="p-3 border border-gray-200 text-center font-bold">0</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 border border-gray-200"><span class="font-semibold text-red-600">Level 3 (Tinggi/HOTS)</span><br><span class="text-xs text-gray-500">Soal 8-10 (Analisis & Pemecahan Masalah)</span></td>
+                                <td class="p-3 border border-gray-200 text-center">36</td>
+                                <td id="rep-l3-score" class="p-3 border border-gray-200 text-center font-bold">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- KBC Note -->
+                    <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 print-break-inside-avoid">
+                        <h4 class="font-bold text-green-800 flex items-center mb-1"><i class="fas fa-heart text-red-500 mr-2"></i>Catatan Kurikulum Berbasis Cinta</h4>
+                        <p class="text-gray-700 text-sm text-justify">Siswa telah menunjukkan pemahaman terkait keseimbangan ekosistem ciptaan Allah SWT. Diharapkan pengetahuan ini menumbuhkan rasa syukur, kasih sayang terhadap sesama makhluk, dan komitmen menjaga kelestarian alam lingkungan (terutama kawasan Gorontalo) sebagai wujud manifestasi Cinta kepada Allah, Rasul, dan Tanah Air.</p>
+                    </div>
+
+                    <!-- Recommendation -->
+                    <div class="mb-12 print-break-inside-avoid">
+                        <h4 class="font-bold text-gray-700 mb-2">Rekomendasi Guru:</h4>
+                        <p id="rep-predikat" class="text-sm border border-gray-300 p-3 rounded bg-gray-50 min-h-[3rem] italic"></p>
+                    </div>
+
+                    <!-- Signatures -->
+                    <div class="flex justify-between mt-12 pt-8 border-t border-gray-200 print-break-inside-avoid">
+                        <div class="text-center w-1/3">
+                            <p class="mb-16 text-sm">Mengetahui,<br>Orang Tua / Wali</p>
+                            <p class="font-bold border-b border-gray-400 inline-block w-3/4">&nbsp;</p>
+                        </div>
+                        <div class="text-center w-1/3">
+                            <p class="mb-16 text-sm">Gorontalo, <span id="rep-sign-date"></span><br>Guru Mata Pelajaran</p>
+                            <p class="font-bold border-b border-gray-400 inline-block w-3/4">Cinrianingsih Mahajani, S.Pd</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-white border-t flex justify-center space-x-4 no-print z-10">
+                <button onclick="downloadPDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg flex items-center transition-colors">
+                    <i class="fas fa-download mr-2"></i> Unduh / Cetak Laporan
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Marquee Text -->
+    <div class="marquee-container no-print">
+        <div class="marquee-content">
+            <i class="fas fa-info-circle mr-2 text-emerald-400"></i> <strong>Mata Pelajaran:</strong> Ilmu Pengetahuan Alam (IPA) Kelas V / Fase C &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+            <i class="fas fa-user-tie mr-2 text-emerald-400"></i> <strong>Pengembang:</strong> Cinrianingsih Mahajani, S.Pd (MIN 1 Kota Gorontalo) &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+            <i class="fas fa-bullseye mr-2 text-emerald-400"></i> <strong>Tujuan Pembelajaran:</strong> Menganalisis Hubungan antar Komponen Biotik dan Abiotik, serta pengaruhnya terhadap Ekosistem untuk menumbuhkan rasa syukur dan tanggung jawab menjaga kelestarian ekosistem sebagai wujud cinta Allah SWT dan lingkungan. &nbsp;&nbsp;&nbsp;&nbsp;
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        /* =========================================================================
+           DATA STRUCTURES & GOOGLE APPS SCRIPT URL
+           ========================================================================= */
+        
+        // PENTING: Masukkan URL Web App Google Apps Script Anda di bawah ini
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbysBhzR3QKngRTsgZzjVdlrtZzqckKuHhEedhjahNYUKu4o-Kj9-5Y_d_M4bo13-vT-MA/exec";
+        
+        // 1. DATA BELAJAR (7 Slides)
+        const dataBelajar = [
+            {
+                title: "Ekosistem: Karya Agung Sang Pencipta",
+                content: `
+                    <p class="mb-3 text-justify leading-relaxed">Ekosistem adalah hubungan timbal balik yang tidak terpisahkan antara makhluk hidup (<strong>komponen biotik</strong>) dan lingkungannya (<strong>komponen abiotik</strong>). Di Provinsi Gorontalo, kita bisa melihat ekosistem yang beragam, mulai dari pesisir pantai Teluk Tomini yang indah hingga pegunungan yang subur.</p>
+                    <p class="mb-4 text-justify leading-relaxed">Keberadaan ekosistem yang seimbang ini bukanlah suatu kebetulan, melainkan bukti kebesaran dan kasih sayang Allah SWT yang telah menciptakan segalanya dengan ukuran dan peran yang pasti untuk saling melengkapi.</p>
+                    <div class="bg-emerald-50 rounded-xl p-4 mb-4 border-l-4 border-emerald-500 shadow-sm">
+                        <p class="text-center font-arabic text-xl text-emerald-900 mb-2 leading-loose" dir="rtl">وَمَا مِنْ دَابَّةٍ فِي الْأَرْضِ إِلَّا عَلَى اللَّهِ رِزْقُهَا</p>
+                        <p class="text-xs text-gray-700 text-center italic">"Dan tidak ada suatu binatang melatapun di bumi melainkan Allah-lah yang memberi rezekinya..." (QS. Hud: 6)</p>
+                    </div>
+                `,
+                quiz: {
+                    question: "Menurut QS. Hud: 6 dan konsep ekosistem, siapakah yang pada akhirnya menjamin rezeki (makanan) bagi seluruh makhluk hidup di alam?",
+                    options: [
+                        { text: "Manusia yang memberi makan", isCorrect: false },
+                        { text: "Allah SWT Sang Pencipta", isCorrect: true },
+                        { text: "Hewan predator yang kuat", isCorrect: false }
+                    ],
+                    feedback: "Benar! Allah SWT menjamin rezeki setiap makhluk melalui sistem ekosistem yang diciptakan-Nya."
+                }
+            },
+            {
+                title: "Produsen: Sumber Kehidupan",
+                content: `
+                    <p class="mb-3 text-justify leading-relaxed">Dalam rantai makanan, <strong>Produsen</strong> adalah makhluk hidup yang dapat membuat makanannya sendiri melalui proses fotosintesis. Tumbuhan hijau adalah produsen utama.</p>
+                    <p class="mb-3 text-justify leading-relaxed">Gorontalo dikenal sebagai daerah agraris penghasil jagung yang melimpah. Tanaman jagung di ladang merupakan produsen yang menyimpan energi dari matahari. Mereka tidak hanya memberi makan manusia, tetapi juga serangga, burung, dan hewan ternak. Mensyukuri nikmat panen berarti kita juga mencintai lingkungan tempat tumbuhnya jagung tersebut.</p>
+                    <div class="bg-emerald-50 rounded-xl p-4 mb-4 border-l-4 border-emerald-500 shadow-sm">
+                        <p class="text-center font-arabic text-xl text-emerald-900 mb-2 leading-loose" dir="rtl">وَهُوَ الَّذِي أَنْزَلَ مِنَ السَّمَاءِ مَاءً فَأَخْرَجْنَا بِهِ نَبَاتَ كُلِّ شَيْءٍ</p>
+                        <p class="text-xs text-gray-700 text-center italic">"Dan Dialah yang menurunkan air hujan dari langit, lalu Kami tumbuhkan dengan air itu segala macam tumbuh-tumbuhan..." (QS. Al-An'am: 99)</p>
+                    </div>
+                `,
+                quiz: {
+                    question: "Di daerah agraris Gorontalo, organisme apa yang bertindak sebagai produsen utama yang menangkap energi matahari?",
+                    options: [
+                        { text: "Sapi dan Kambing", isCorrect: false },
+                        { text: "Tanaman Jagung", isCorrect: true },
+                        { text: "Burung Pemakan Biji", isCorrect: false }
+                    ],
+                    feedback: "Tepat sekali! Tanaman jagung memproduksi makanannya sendiri dan menjadi dasar rantai makanan."
+                }
+            },
+            {
+                title: "Konsumen Tingkat I (Herbivora)",
+                content: `
+                    <p class="mb-3 text-justify leading-relaxed">Makhluk hidup yang tidak bisa membuat makanan sendiri disebut <strong>Konsumen</strong>. Konsumen Tingkat I adalah hewan pemakan tumbuhan (Herbivora) yang memakan produsen secara langsung.</p>
+                    <p class="mb-4 text-justify leading-relaxed">Di sekitar kawasan Danau Limboto yang ditumbuhi enceng gondok dan rerumputan rawa, banyak terdapat serangga, ikan herbivora, maupun unggas air yang memakan bagian tumbuhan tersebut. Keberadaan mereka sangat penting untuk mengontrol jumlah tumbuhan agar danau tidak mendangkal. Ini mengajarkan kita bahwa setiap ciptaan, betapapun kecilnya, memiliki tugas penting dari Allah.</p>
+                `,
+                quiz: {
+                    question: "Berdasarkan penjelasan di atas, peran utama Konsumen Tingkat I (Herbivora) di sekitar Danau Limboto adalah...",
+                    options: [
+                        { text: "Mengubah energi matahari menjadi makanan", isCorrect: false },
+                        { text: "Memakan tumbuhan air untuk mengontrol populasinya", isCorrect: true },
+                        { text: "Menguraikan bangkai ikan di dasar danau", isCorrect: false }
+                    ],
+                    feedback: "Benar! Herbivora memakan tumbuhan hijau dan menjaga keseimbangan populasi flora."
+                }
+            },
+            {
+                title: "Konsumen Tingkat II & III (Karnivora)",
+                content: `
+                    <p class="mb-3 text-justify leading-relaxed">Konsumen Tingkat II memakan Konsumen Tingkat I, dan Konsumen Tingkat III (Puncak) memakan Konsumen Tingkat II. Mereka umumnya adalah hewan pemakan daging (Karnivora).</p>
+                    <p class="mb-4 text-justify leading-relaxed">Sebagai contoh di pesisir Teluk Tomini, ikan kecil pemakan plankton (Konsumen I) akan dimakan oleh ikan tongkol (Konsumen II). Ikan tongkol kemudian dapat dimakan oleh burung pelikan atau hiu (Konsumen Puncak). Adanya predator ini mencegah overpopulasi ikan kecil, menjaga agar ekosistem laut tetap sehat. Hukum alam ini berjalan seimbang sesuai sunnatullah.</p>
+                `,
+                quiz: {
+                    question: "Jika di Teluk Tomini populasi ikan tongkol (Konsumen II) tiba-tiba habis ditangkap manusia, apa yang akan terjadi pada ikan kecil (Konsumen I)?",
+                    options: [
+                        { text: "Populasi ikan kecil akan meledak karena tidak ada predator", isCorrect: true },
+                        { text: "Ikan kecil akan berubah menjadi produsen", isCorrect: false },
+                        { text: "Ikan kecil akan pindah ke daratan", isCorrect: false }
+                    ],
+                    feedback: "Tepat! Hilangnya predator menyebabkan mangsa berkembang biak tanpa kendali dan merusak keseimbangan."
+                }
+            },
+            {
+                title: "Dekomposer: Pasukan Pembersih Alam",
+                content: `
+                    <p class="mb-3 text-justify leading-relaxed">Rantai makanan tidak berhenti pada Konsumen Puncak. Ketika hewan atau tumbuhan mati, <strong>Dekomposer (Pengurai)</strong> seperti bakteri dan jamur bertugas menghancurkan tubuh makhluk hidup tersebut.</p>
+                    <p class="mb-4 text-justify leading-relaxed">Mereka mengembalikan zat hara (pupuk alami) ke dalam tanah atau air, yang kemudian digunakan kembali oleh produsen (tumbuhan). Ini adalah siklus yang tak pernah putus. Melalui dekomposer, Allah mengajarkan bahwa tidak ada yang sia-sia dari apa yang diciptakan-Nya, bahkan sisa makhluk mati pun membawa kehidupan baru bagi tanah pertanian di Gorontalo.</p>
+                `,
+                quiz: {
+                    question: "Tanpa adanya jamur dan bakteri (dekomposer), dampak terburuk apa yang akan terjadi pada lingkungan?",
+                    options: [
+                        { text: "Tumbuhan akan tumbuh lebih cepat dan subur", isCorrect: false },
+                        { text: "Bangkai dan sampah organik akan menumpuk tak hancur", isCorrect: true },
+                        { text: "Hewan herbivora akan berubah menjadi karnivora", isCorrect: false }
+                    ],
+                    feedback: "Benar! Dekomposer berjasa membersihkan bumi dari sisa makhluk hidup."
+                }
+            },
+            {
+                title: "Jaring-Jaring Makanan: Kompleksitas Kehidupan",
+                content: `
+                    <p class="mb-3 text-justify leading-relaxed">Di alam liar yang nyata, seekor hewan tidak hanya memakan satu jenis makanan. Oleh karena itu, kumpulan beberapa rantai makanan yang saling berhubungan disebut <strong>Jaring-Jaring Makanan</strong>.</p>
+                    <p class="mb-4 text-justify leading-relaxed">Di sawah-sawah Gorontalo, katak tidak hanya memakan belalang, tapi juga nyamuk dan laba-laba. Ular sawah memakan katak maupun tikus. Semakin rumit jaring-jaring makanan, ekosistem akan semakin stabil. Keanekaragaman ini memancarkan keindahan ciptaan Tuhan yang saling bergantung satu sama lain, menumbuhkan rasa takjub dan cinta kita pada alam.</p>
+                `,
+                quiz: {
+                    question: "Apa perbedaan mendasar antara Rantai Makanan dengan Jaring-Jaring Makanan?",
+                    options: [
+                        { text: "Jaring-jaring makanan hanya terjadi di lautan", isCorrect: false },
+                        { text: "Jaring-jaring makanan adalah gabungan dari beberapa rantai makanan yang saling terkait", isCorrect: true },
+                        { text: "Rantai makanan lebih kompleks daripada jaring-jaring makanan", isCorrect: false }
+                    ],
+                    feedback: "Betul! Jaring-jaring makanan menggambarkan realita di alam dimana ada banyak jalur makan dan dimakan."
+                }
+            },
+            {
+                title: "Peran Manusia: Khilafah & Cinta Lingkungan",
+                content: `
+                    <p class="mb-3 text-justify leading-relaxed">Manusia memegang peranan kunci. Allah menjadikan manusia sebagai <em>khalifah</em> (pemimpin/pengelola) di bumi. Aktivitas yang merusak seperti penebangan hutan, penggunaan racun ikan di Teluk Tomini, atau membuang sampah di Danau Limboto akan memutus rantai makanan.</p>
+                    <div class="bg-red-50 rounded-xl p-4 mb-4 border-l-4 border-red-500 shadow-sm">
+                        <p class="text-center font-arabic text-xl text-red-900 mb-2 leading-loose" dir="rtl">ظَهَرَ الْفَسَادُ فِي الْبَرِّ وَالْبَحْرِ بِمَا كَسَبَتْ أَيْدِي النَّاسِ</p>
+                        <p class="text-xs text-gray-700 text-center italic">"Telah nampak kerusakan di darat dan di laut disebabkan karena perbuatan tangan manusia..." (QS. Ar-Rum: 41)</p>
+                    </div>
+                    <p class="text-justify leading-relaxed text-emerald-800 font-medium">Berdasarkan Kurikulum Berbasis Cinta, mari kita wujudkan kecintaan kepada Allah dengan cara merawat alam, tidak menyiksa hewan, dan menjaga kebersihan lingkungan sebagai bentuk cinta tanah air Indonesia tercinta.</p>
+                `,
+                quiz: {
+                    question: "Berdasarkan QS. Ar-Rum ayat 41 dan peran manusia sebagai khalifah, tindakan nyata apa yang menunjukkan rasa 'Cinta Lingkungan' di Gorontalo?",
+                    options: [
+                        { text: "Menangkap ikan kecil di teluk menggunakan pukat harimau", isCorrect: false },
+                        { text: "Mengubah seluruh hutan di pegunungan menjadi perumahan", isCorrect: false },
+                        { text: "Melakukan reboisasi mangrove dan membuang sampah pada tempatnya", isCorrect: true }
+                    ],
+                    feedback: "Alhamdulillah, jawabanmu benar! Menjaga lingkungan adalah wujud nyata ibadah dan cinta alam."
+                }
+            }
+        ];
+
+        // 2. DATA BERMAIN (10 Stimulus panjang literasi)
+        const dataBermain = [
+            {
+                type: "mc",
+                stimulus: "Di kawasan pesisir Teluk Tomini, Provinsi Gorontalo, para nelayan lokal sangat bersyukur atas rezeki dari Allah berupa hasil laut yang melimpah. Teluk ini memiliki ekosistem terumbu karang yang kaya, menjadi rumah bagi fitoplankton, zooplankton, ikan teri, ikan cakalang, dan hiu karang. Fitoplankton di permukaan laut melakukan fotosintesis dan menghasilkan oksigen serta makanan. Zooplankton hidup dengan memakan fitoplankton tersebut. Kemudian, kumpulan ikan teri yang berjumlah jutaan berenang memakan zooplankton. Ikan cakalang yang menjadi komoditas ekonomi nelayan Gorontalo, bertahan hidup dengan memangsa ikan teri. Di puncak rantai, hiu karang memburu ikan cakalang yang lemah. Sistem yang seimbang ini adalah wujud harmoni ciptaan Tuhan. Namun, jika ada oknum yang menangkap ikan teri secara massal dan berlebihan dengan pukat harimau yang merusak, keseimbangan ini akan terganggu.",
+                question: "Berdasarkan teks di atas, urutan rantai makanan yang tepat di ekosistem Teluk Tomini adalah...",
+                options: [
+                    { text: "Fitoplankton → Ikan Teri → Zooplankton → Hiu Karang → Cakalang", isCorrect: false },
+                    { text: "Fitoplankton → Zooplankton → Ikan Teri → Cakalang → Hiu Karang", isCorrect: true },
+                    { text: "Zooplankton → Fitoplankton → Cakalang → Ikan Teri → Hiu Karang", isCorrect: false }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Danau Limboto adalah kebanggaan masyarakat Gorontalo, membentang luas menampung air dari berbagai sungai. Di dalam danau ini, tumbuh subur berbagai tumbuhan air seperti enceng gondok dan alga. Kehidupan sangat dinamis di sini. Siput-siput air dan serangga herbivora asyik memakan daun dan batang alga. Keberadaan siput air ternyata menarik perhatian ikan nila dan ikan gabus berukuran sedang. Ikan gabus merupakan predator yang cukup agresif di habitat air tawar ini. Selain itu, burung bangau sering terlihat berdiri diam di tepi danau, menanti kelengahan ikan gabus untuk dipatuk dan dijadikan santapan siangnya. Rantai kehidupan ini mengingatkan kita pada kasih sayang Allah yang telah menyediakan rezeki bagi setiap spesies sesuai dengan kebutuhannya.",
+                question: "Dalam rantai makanan di Danau Limboto tersebut, burung bangau menduduki posisi sebagai...",
+                options: [
+                    { text: "Produsen tingkat pertama", isCorrect: false },
+                    { text: "Konsumen tingkat pertama (Herbivora)", isCorrect: false },
+                    { text: "Konsumen tingkat puncak / Konsumen III", isCorrect: true }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Hamparan sawah dan ladang jagung di daratan Gorontalo merupakan anugerah yang patut disyukuri. Para petani bekerja keras menanam padi dan jagung. Tanaman padi ini tumbuh dengan bantuan sinar matahari. Di sela-sela batang padi, hidup populasi belalang yang berkembang biak dengan cepat dan memakan daun padi muda. Jika dibiarkan, petani bisa gagal panen. Beruntung, Allah menciptakan katak sawah yang sangat suka memakan belalang. Katak-katak ini melompat di pematang sawah menjaga populasi serangga. Pada malam hari, ular sawah keluar dari lubangnya untuk berburu katak. Ekosistem ini merupakan bukti kebesaran Sang Pencipta dalam menjaga keseimbangan alam tanpa campur tangan bahan kimia buatan manusia.",
+                question: "Organisme manakah pada teks tersebut yang berperan membantu petani secara alami mengendalikan hama daun padi?",
+                options: [
+                    { text: "Ular sawah karena memakan katak", isCorrect: false },
+                    { text: "Katak sawah karena memangsa belalang", isCorrect: true },
+                    { text: "Sinar matahari karena membantu fotosintesis", isCorrect: false }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Sebagai seorang siswa madrasah di Gorontalo yang belajar nilai Kurikulum Berbasis Cinta, Ahmad memahami bahwa menyayangi lingkungan adalah bagian dari iman. Suatu hari, Ahmad melihat seekor burung hantu (predator tikus) ditangkap dan dikurung oleh warga desa hanya untuk dijadikan mainan, padahal di desa tersebut sedang terjadi wabah serangan hama tikus yang menghancurkan lumbung padi. Tikus-tikus tersebut merajalela karena kehilangan musuh alaminya. Ahmad teringat bahwa Allah menciptakan makhluk dengan tujuannya masing-masing. Burung hantu berburu di malam hari untuk memangsa tikus sawah (konsumen tingkat 1).",
+                question: "Berdasarkan prinsip keseimbangan alam dan literasi di atas, tindakan apa yang sebaiknya disarankan Ahmad kepada warga desa?",
+                options: [
+                    { text: "Membunuh semua tikus dengan racun kimia berbahaya secara masal.", isCorrect: false },
+                    { text: "Melepaskan burung hantu ke alam liar agar rantai makanan pengontrol tikus kembali normal.", isCorrect: true },
+                    { text: "Memelihara burung hantu di sangkar kecil sambil memberinya makan daging ayam setiap hari.", isCorrect: false }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Setiap ciptaan Allah di muka bumi pasti akan mengalami kematian. Hewan karnivora yang perkasa seperti harimau atau burung elang sekalipun, pada akhirnya akan mati dan jatuh ke tanah. Di kawasan hutan lindung Nantu, Gorontalo, bangkai seekor babi rusa tergeletak di lantai hutan yang lembab. Tidak lama kemudian, bakteri pembusuk, jamur, dan belatung mulai menguraikan bangkai tersebut. Proses ini mungkin terlihat menjijikkan bagi sebagian orang, namun sebenarnya ini adalah mekanisme 'daur ulang' alami yang sangat luar biasa. Zat-zat penyusun tubuh babi rusa dikembalikan ke dalam tanah menjadi mineral yang sangat subur. Pohon-pohon mahoni dan rotan kemudian menyerap mineral tersebut melalui akarnya untuk tumbuh lebih besar.",
+                question: "Apa nama kelompok makhluk hidup (seperti jamur dan bakteri) yang bertugas menghancurkan jasad mati pada teks di atas?",
+                options: [
+                    { text: "Herbivora Puncak", isCorrect: false },
+                    { text: "Dekomposer (Pengurai)", isCorrect: true },
+                    { text: "Produsen Tanah", isCorrect: false }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Selain rantai makanan lurus, ekosistem memiliki pola rumit bernama jaring-jaring makanan. Di sebuah padang rumput di pedalaman Gorontalo, rumput liar menjadi makanan bagi sapi, kambing, dan belalang. Belalang tidak hanya dimakan oleh katak, tetapi juga oleh burung prenjak. Ular memakan katak dan burung kecil. Di atas langit, burung elang mengintai untuk memangsa ular, atau bahkan anak kambing yang lemah. Keberagaman jalur makanan ini menjadikan alam lebih tangguh. Jika satu jenis hewan (misal katak) tiba-tiba berkurang karena kemarau, ular tidak akan langsung mati kelaparan karena ia masih bisa memakan burung kecil. Ini adalah bukti rahmat Allah yang mendistribusikan rezeki dengan banyak cara.",
+                question: "Pernyataan yang paling tepat menjelaskan keunggulan jaring-jaring makanan dibandingkan rantai makanan tunggal adalah...",
+                options: [
+                    { text: "Membuat konsumen puncak lebih cepat kelaparan", isCorrect: false },
+                    { text: "Menyediakan alternatif sumber makanan sehingga ekosistem lebih stabil (tangguh)", isCorrect: true },
+                    { text: "Hanya terjadi pada hewan besar yang memakan rumput", isCorrect: false }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Islam mengajarkan moderasi (keseimbangan) dalam segala hal, termasuk dalam memanfaatkan alam. Al-Qur'an Surat Ar-Rum ayat 41 menyinggung tentang kerusakan di bumi akibat perbuatan tangan manusia. Di sebuah sungai di Gorontalo yang dulunya jernih, terjadi pencemaran parah akibat limbah pabrik yang tidak diolah. Racun limbah ini membunuh fitoplankton (produsen) di sungai tersebut. Perlahan-lahan, ikan-ikan kecil mulai mati karena kehilangan sumber makanannya. Ikan-ikan besar yang memakan ikan kecil juga ikut keracunan atau mati kelaparan. Warga yang mengonsumsi ikan dari sungai itu pun berisiko terkena penyakit. Satu tindakan merusak dari manusia telah menghancurkan seluruh tingkatan energi dalam air.",
+                question: "Dari kasus di atas, apa komponen pertama yang terkena dampak langsung dari limbah sehingga memicu hancurnya seluruh rantai makanan sungai?",
+                options: [
+                    { text: "Manusia yang memakan ikan", isCorrect: false },
+                    { text: "Ikan-ikan besar pemangsa", isCorrect: false },
+                    { text: "Fitoplankton sebagai produsen dasar", isCorrect: true }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Berdasarkan penelitian di kawasan konservasi, sebuah ekosistem hutan menyimpan energi dari matahari ke tumbuhan (produsen) sebesar 10.000 kalori. Namun, menurut hukum perpindahan energi dalam sains, hanya sekitar 10% energi yang berhasil ditransfer ke tingkat trofik berikutnya (konsumen di atasnya), karena sebagian besar energi digunakan makhluk hidup untuk bergerak dan dilepas sebagai panas. Jika Rusa (Konsumen I) memakan tumbuhan tersebut, Rusa hanya mendapatkan 1.000 kalori. Kemudian seekor Harimau (Konsumen II) memakan Rusa tersebut.",
+                question: "Berdasarkan hukum transfer energi 10% tersebut, berapakah kalori yang kira-kira diterima oleh Harimau (Konsumen II)?",
+                options: [
+                    { text: "1.000 kalori", isCorrect: false },
+                    { text: "100 kalori", isCorrect: true },
+                    { text: "10 kalori", isCorrect: false }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Di halaman MI N 1 Kota Gorontalo, siswa-siswi kelas 5 melakukan pengamatan terhadap pot bunga yang besar. Mereka menemukan adanya tanaman mawar yang subur, kutu daun yang menempel mengisap getah batang mawar, kumbang koksi (ladybug) cantik berwarna merah bercak hitam yang sedang asyik memakan kutu daun, dan seekor kadal kecil yang tiba-tiba melesat menyambar kumbang koksi tersebut. Siswa-siswi menyadari bahwa bahkan di lingkungan sekolah pun hukum alam yang diciptakan Allah tetap berlaku. Mereka berdiskusi sambil mensyukuri keanekaragaman hayati mini tersebut.",
+                question: "Pada ekosistem halaman madrasah tersebut, siapakah yang berkedudukan sebagai Konsumen Tingkat II (Karnivora pertama)?",
+                options: [
+                    { text: "Kutu daun", isCorrect: false },
+                    { text: "Kumbang koksi (Ladybug)", isCorrect: true },
+                    { text: "Kadal kecil", isCorrect: false }
+                ]
+            },
+            {
+                type: "mc",
+                stimulus: "Cinta tanah air dan lingkungan dapat dibuktikan melalui aksi nyata konservasi. Di kawasan Teluk Tomini, pemerintah daerah Provinsi Gorontalo membuat aturan ketat melarang perburuan ikan hiu karang secara komersial (diambil siripnya saja lalu bangkainya dibuang kembali ke laut). Kebijakan ini mendapat dukungan dari tokoh agama setempat karena menyiksa hewan sangat dilarang dalam Islam. Secara ilmiah, hilangnya populasi hiu karang secara drastis sebagai konsumen puncak (Apex Predator) akan menyebabkan meledaknya populasi ikan-ikan karnivora menengah, yang kemudian akan memakan habis ikan-ikan kecil pemakan alga. Jika ikan kecil habis, alga akan tumbuh tak terkendali dan menutupi cahaya bagi terumbu karang.",
+                question: "Mengapa melindungi Hiu Karang (Konsumen Puncak) sangat penting bagi kelestarian Terumbu Karang itu sendiri?",
+                options: [
+                    { text: "Karena hiu memakan terumbu karang agar tidak tumbuh terlalu besar", isCorrect: false },
+                    { text: "Karena hiu menjaga populasi ikan karnivora menengah, mencegah efek domino yang merusak ekosistem ke bawah", isCorrect: true },
+                    { text: "Karena hiu adalah ikan berharga mahal untuk dijual", isCorrect: false }
+                ]
+            }
+        ];
+
+        // 3. DATA BERLATIH (10 Soal Asesmen Berjenjang)
+        const dataBerlatih = [
+            // LEVEL 1 (Dasar) - No 1-3 (@8 Poin)
+            {
+                level: 1, poin: 8,
+                stimulus: "Seluruh makhluk hidup di dunia ini tidak dapat hidup sendiri. Mereka membutuhkan makanan dari makhluk lain dan juga bergantung pada benda tak hidup (abiotik) seperti air, tanah, dan cahaya matahari. Dalam konsep ekosistem, makhluk hidup yang mampu memasak atau membuat makanannya sendiri dengan bantuan cahaya matahari melalui proses fotosintesis dinamakan produsen. Contohnya adalah pohon kelapa dan rumput gajah yang banyak tumbuh di wilayah daratan Gorontalo.",
+                question: "Organisme apakah yang menduduki tingkat pertama (dasar) dalam sebuah piramida atau rantai makanan?",
+                options: ["Konsumen Tingkat I", "Produsen", "Dekomposer"],
+                answer: 1
+            },
+            {
+                level: 1, poin: 8,
+                stimulus: "Al-Qur'an secara tersirat banyak menyinggung mengenai hewan-hewan yang mencari makan di bumi Allah. Dalam sains, hewan dikelompokkan berdasarkan jenis makanannya. Ada hewan pemakan tumbuhan saja, hewan pemakan daging (hewan lain), dan hewan pemakan segala (tumbuhan dan daging). Sapi, kambing, dan kerbau yang banyak diternakkan warga Gorontalo adalah hewan yang secara khusus hanya mengonsumsi rumput dan dedaunan.",
+                question: "Hewan pemakan tumbuhan (seperti sapi dan kambing) dalam rantai makanan disebut juga dengan istilah...",
+                options: ["Herbivora", "Karnivora", "Omnivora"],
+                answer: 0
+            },
+            {
+                level: 1, poin: 8,
+                stimulus: "Ketika sebuah pohon tumbang di hutan, atau ketika seekor hewan mati di padang rumput, jasad tersebut tidak akan berada di sana selamanya. Perlahan-lahan wujudnya akan hancur dan menyatu dengan tanah. Hal ini terjadi karena Allah menciptakan pasukan pengurai berukuran mikroskopis maupun kecil yang bekerja diam-diam namun memiliki peran yang sangat vital bagi kebersihan dan kesuburan bumi.",
+                question: "Contoh makhluk hidup yang berperan sebagai pengurai (dekomposer) di alam adalah...",
+                options: ["Burung Elang dan Ular", "Bakteri dan Jamur pembusuk", "Tanaman paku dan lumut"],
+                answer: 1
+            },
+            // LEVEL 2 (Sedang) - No 4-7 (@10 Poin)
+            {
+                level: 2, poin: 10,
+                stimulus: "Perhatikan rantai makanan di ladang jagung masyarakat Gorontalo berikut ini: \nTanaman Jagung -> Ulat Daun -> Burung Prenjak -> Ular Sawah -> Burung Elang. \nRantai makanan ini merupakan satu kesatuan aliran energi yang seimbang. Setiap makhluk mendapat rezeki sesuai dengan fitrah penciptaannya dari Allah SWT.",
+                question: "Berdasarkan rantai makanan tersebut, organisme manakah yang berkedudukan sebagai Konsumen Tingkat II?",
+                options: ["Ulat Daun", "Burung Prenjak", "Ular Sawah"],
+                answer: 1
+            },
+            {
+                level: 2, poin: 10,
+                stimulus: "Di kawasan pesisir Danau Limboto, nelayan mengamati bahwa jumlah ikan gabus tangkapan mereka semakin menurun. Setelah diselidiki, hal ini terjadi karena banyak warga memburu katak liar secara besar-besaran untuk dijual ke luar daerah. Padahal, katak merupakan salah satu makanan alami ikan gabus dan ular air di kawasan tersebut. Penurunan satu jenis hewan ternyata merugikan manusia itu sendiri.",
+                question: "Jika populasi katak menurun drastis akibat perburuan, apa dampak terdekat pada rantai makanan di Danau Limboto?",
+                options: ["Populasi serangga (mangsa katak) akan meningkat, populasi ular (pemangsa katak) menurun", "Tumbuhan air akan mati mengering karena racun", "Ikan gabus akan berubah menjadi pemakan tumbuhan"],
+                answer: 0
+            },
+            {
+                level: 2, poin: 10,
+                stimulus: "Dalam ajaran agama, kita dilarang melakukan kerusakan di muka bumi (Al-Baqarah: 11). Di sebuah desa agraris, para petani beramai-ramai menyemprotkan pestisida kimia berdosis tinggi untuk membunuh hama wereng. Ternyata pestisida ini tidak hanya membunuh wereng, tetapi juga membunuh laba-laba sawah dan capung pemangsa yang merupakan musuh alami wereng. Musim tanam berikutnya, wereng kembali menyerang dengan jumlah yang lebih meledak karena musuh alami mereka sudah tiada.",
+                question: "Penggunaan pestisida kimia yang berlebihan dan tidak bijak berdampak negatif pada ekosistem karena...",
+                options: ["Menyuburkan tanaman padi menjadi raksasa", "Membunuh predator alami hama sehingga mengganggu keseimbangan jaring-jaring makanan", "Menciptakan jenis padi varietas baru yang tahan penyakit"],
+                answer: 1
+            },
+            {
+                level: 2, poin: 10,
+                stimulus: "Ekosistem kebun di halaman Madrasah Ibtidaiyah tampak rindang. Di sana terdapat (1) Pohon Mangga, (2) Jamur di batang lapuk, (3) Burung Kutilang pemakan ulat, dan (4) Ulat pemakan daun mangga. Siswa kelas V mencatat organisme-organisme tersebut dalam tugas observasi mereka untuk menyusun rantai makanan yang benar.",
+                question: "Urutan rantai makanan yang tepat dari komponen-komponen di atas adalah...",
+                options: ["(1) -> (3) -> (4) -> (2)", "(1) -> (4) -> (3) -> (2)", "(4) -> (1) -> (2) -> (3)"],
+                answer: 1
+            },
+            // LEVEL 3 (HOTS) - No 8-10 (@12 Poin)
+            {
+                level: 3, poin: 12,
+                stimulus: "Sebuah perusahaan besar menebang area hutan yang sangat luas di pegunungan Gorontalo untuk dijadikan kawasan tambang. Hutan tersebut aslinya adalah habitat bagi babi hutan, monyet, dan harimau/macan tutul endemik. Setahun kemudian, warga desa di sekitar kaki gunung mengeluhkan bahwa kebun jagung dan rumah mereka sering diserang oleh kawanan babi hutan kelaparan yang turun dari gunung. Warga menjadi marah dan berniat memburu babi hutan tersebut. Namun seorang ahli konservasi memberikan penjelasan sains yang mendalam.",
+                question: "Analisis logis berdasarkan prinsip rantai makanan mengapa babi hutan menyerang pemukiman adalah...",
+                options: [
+                    {text:"Babi hutan ingin membalas dendam kepada manusia yang menembak keluarganya", isCorrect: false},
+                    {text:"Hilangnya produsen (hutan) memaksa konsumen 1 mencari makan di kebun warga, akibat ekosistem alami mereka hancur", isCorrect: true},
+                    {text:"Populasi predator harimau di gunung meningkat tajam sehingga mengusir babi turun ke desa", isCorrect: false}
+                ],
+                // For HOTS we use direct object matching to handle longer options gracefully in render
+            },
+            {
+                level: 3, poin: 12,
+                stimulus: "Di Laut Sulawesi dan Teluk Tomini, terdapat spesies penyu laut yang sangat dilindungi. Penyu ini adalah satu-satunya hewan besar yang mampu memakan ubur-ubur secara aman tanpa keracunan sengatannya. Akhir-akhir ini, banyak penyu mati karena memakan sampah plastik transparan yang melayang di laut, karena mereka mengira plastik itu adalah ubur-ubur. Jika populasi penyu musnah akibat sampah plastik manusia (kurangnya rasa cinta lingkungan).",
+                question: "Prediksi dampak paling serius (efek domino) terhadap jaring-jaring makanan laut pesisir adalah...",
+                options: [
+                    {text:"Laut menjadi lebih bersih karena tidak ada penyu yang membuang kotoran", isCorrect: false},
+                    {text:"Populasi ubur-ubur akan meledak tak terkendali, menghabiskan larva ikan kecil, sehingga tangkapan nelayan menurun drastis", isCorrect: true},
+                    {text:"Ubur-ubur akan berevolusi menjadi ikan karang untuk beradaptasi", isCorrect: false}
+                ],
+            },
+            {
+                level: 3, poin: 12,
+                stimulus: "Perhatikan diagram transfer energi pada ekosistem hipotetis berikut (Hukum 10%): Matahari memancarkan 1.000.000 unit energi cahaya. \nProdusen (Fitoplankton) berhasil menyerap sebagian energi tersebut menjadi 10.000 kkal energi kimia dasar. \nFitoplankton -> Udang kecil -> Ikan Karang -> Burung Pelikan. \nKonsep keseimbangan alam menyatakan bahwa semakin tinggi puncak piramida makanan, jumlah populasi dan energinya harus semakin sedikit (piramida terbalik akan hancur).",
+                question: "Berdasarkan prinsip transfer energi dan piramida makanan, jika energi tersisa untuk Burung Pelikan sangat kecil (hanya 10 kkal), kesimpulan kritis apa yang paling tepat?",
+                options: [
+                    {text:"Burung Pelikan harus memakan rumput darat agar mendapat energi 10.000 kkal", isCorrect: false},
+                    {text:"Alam mengharuskan jumlah populasi burung pelikan lebih sedikit dibanding jumlah udang kecil agar ekosistem tidak kolaps", isCorrect: true},
+                    {text:"Matahari kurang memberikan cahayanya ke laut sehingga energi di tingkat atas habis", isCorrect: false}
+                ],
+            }
+        ];
+
+        /* =========================================================================
+           STATE MANAGEMENT
+           ========================================================================= */
+        const appState = {
+            user: { name: "", class: "", date: "" },
+            progress: {
+                belajarComplete: false,
+                bermainComplete: false,
+                berlatihComplete: false
+            },
+            scores: { bermain: 0, berlatih: { l1: 0, l2: 0, l3: 0, total: 0 } },
+            currentModule: null,
+            currentSlide: 0,
+            onbSlide: 1,
+            userAnswersBermain: [],
+            userAnswersBerlatih: []
+        };
+
+        /* =========================================================================
+           AUDIO ENGINE (Tone.js)
+           ========================================================================= */
+        const audio = {
+            started: false,
+            bgmPlaying: false,
+            clickSynth: null,
+            correctSynth: null,
+            wrongSynth: null,
+            bgmSynth: null
+        };
+
+        async function initAudio() {
+            if(audio.started) return;
+            await Tone.start();
+            audio.started = true;
+            
+            // SFX Synths
+            audio.clickSynth = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
+            audio.clickSynth.volume.value = -10;
+
+            audio.correctSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+            audio.correctSynth.set({ oscillator: { type: "triangle" }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 0.5 } });
+            audio.correctSynth.volume.value = -8;
+
+            audio.wrongSynth = new Tone.Synth({ oscillator: { type: "sawtooth" }, envelope: { attack: 0.1, decay: 0.2, sustain: 0.2, release: 0.5 } });
+            const filter = new Tone.Filter(800, "lowpass").toDestination();
+            audio.wrongSynth.connect(filter);
+            audio.wrongSynth.volume.value = -8;
+
+            // BGM Synth & Sequence
+            audio.bgmSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+            audio.bgmSynth.volume.value = -22;
+            audio.bgmSynth.set({ oscillator: { type: "sine" }, envelope: { attack: 1, decay: 1, sustain: 0.5, release: 2 } });
+
+            const notes = ["C4", "E4", "G4", "A4", "C5", "A4", "G4", "E4", "F4", "A4", "C5", "D5", "C5", "A4", "F4", "D4"];
+            let step = 0;
+            Tone.Transport.scheduleRepeat((time) => {
+                if(audio.bgmPlaying) {
+                    audio.bgmSynth.triggerAttackRelease(notes[step % notes.length], "4n", time);
+                    step++;
+                }
+            }, "4n");
+            Tone.Transport.bpm.value = 90;
+        }
+
+        function playClick() {
+            initAudio(); 
+            if(audio.started && audio.clickSynth) audio.clickSynth.triggerAttackRelease("C6", "32n");
+        }
+
+        function playTransition() {
+            initAudio();
+            if(audio.started && audio.clickSynth) audio.clickSynth.triggerAttackRelease("G5", "16n");
+        }
+
+        function playCorrect() {
+            initAudio();
+            if(audio.started && audio.correctSynth) {
+                const now = Tone.now();
+                audio.correctSynth.triggerAttackRelease("C5", "8n", now);
+                audio.correctSynth.triggerAttackRelease("E5", "8n", now + 0.1);
+                audio.correctSynth.triggerAttackRelease("G5", "4n", now + 0.2);
+            }
+        }
+
+        function playWrong() {
+            initAudio();
+            if(audio.started && audio.wrongSynth) {
+                const now = Tone.now();
+                audio.wrongSynth.triggerAttackRelease("D3", "8n", now);
+                audio.wrongSynth.triggerAttackRelease("C#3", "4n", now + 0.15);
+            }
+        }
+
+        window.toggleBGM = function() {
+            initAudio().then(() => {
+                if(audio.bgmPlaying) {
+                    Tone.Transport.stop();
+                    audio.bgmPlaying = false;
+                    document.getElementById('bgm-icon').className = 'fas fa-volume-mute';
+                } else {
+                    Tone.Transport.start();
+                    audio.bgmPlaying = true;
+                    document.getElementById('bgm-icon').className = 'fas fa-volume-up';
+                }
+            });
+        };
+
+        /* =========================================================================
+           UI NAVIGATION & UTILS
+           ========================================================================= */
+        function init() {
+            // Check fallback for dev image immediately
+            const devImg = document.querySelector('#modal-dev img');
+            if(devImg) {
+                devImg.onerror = function() {
+                    this.outerHTML = `<div class="w-full h-full bg-emerald-100 flex items-center justify-center text-3xl font-bold text-emerald-700 font-sans">CM</div>`;
+                }
+            }
+
+            setTimeout(() => {
+                document.getElementById('screen-splash').classList.add('opacity-0');
+                setTimeout(() => {
+                    document.getElementById('screen-splash').classList.add('hide');
+                    document.getElementById('screen-cover').classList.remove('hide');
+                }, 500);
+            }, 2000);
+        }
+
+        function nav(screenId) {
+            playTransition();
+            ['cover', 'login', 'onboarding', 'mainmenu', 'module', 'report'].forEach(id => {
+                document.getElementById('screen-' + id).classList.add('hide');
+            });
+            document.getElementById('screen-' + screenId).classList.remove('hide');
+            
+            if(screenId === 'mainmenu') updateDashboard();
+            if(screenId === 'report') generateReportDOM();
+        }
+
+        function openModal(id) {
+            playClick();
+            const el = document.getElementById(id);
+            el.classList.remove('hide');
+            setTimeout(() => el.classList.remove('opacity-0'), 10);
+        }
+
+        function closeModal(id) {
+            playClick();
+            const el = document.getElementById(id);
+            el.classList.add('opacity-0');
+            setTimeout(() => el.classList.add('hide'), 300);
+        }
+
+        function showDialog(title, message) {
+            document.getElementById('dialog-title').innerText = title;
+            document.getElementById('dialog-message').innerText = message;
+            const el = document.getElementById('global-dialog');
+            el.classList.remove('hide');
+        }
+
+        function closeDialog() {
+            document.getElementById('global-dialog').classList.add('hide');
+        }
+
+        /* =========================================================================
+           LOGIN & ONBOARDING
+           ========================================================================= */
+        function processLogin() {
+            playClick();
+            const name = document.getElementById('studentName').value.trim();
+            const cls = document.getElementById('studentClass').value;
+            if(!name || !cls) {
+                showDialog("Data Belum Lengkap", "Silakan masukkan nama lengkap dan pilih kelasmu terlebih dahulu ya.");
+                return;
+            }
+            appState.user.name = name;
+            appState.user.class = cls;
+            
+            const today = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            appState.user.date = today.toLocaleDateString('id-ID', options);
+
+            document.getElementById('display-name-onb').innerText = name.split(" ")[0]; // First name
+            nav('onboarding');
+        }
+
+        function changeOnboarding(dir) {
+            playClick();
+            document.getElementById(`onb-slide-${appState.onbSlide}`).classList.add('hide');
+            appState.onbSlide += dir;
+            document.getElementById(`onb-slide-${appState.onbSlide}`).classList.remove('hide');
+            
+            // Update dots
+            for(let i=1; i<=3; i++) {
+                document.getElementById(`dot-${i}`).className = i === appState.onbSlide ? "w-2 h-2 rounded-full bg-emerald-600" : "w-2 h-2 rounded-full bg-gray-300";
+            }
+
+            // Buttons
+            document.getElementById('btn-onb-prev').disabled = appState.onbSlide === 1;
+            
+            if(appState.onbSlide === 3) {
+                document.getElementById('btn-onb-next').classList.add('hide');
+                document.getElementById('btn-onb-start').classList.remove('hide');
+            } else {
+                document.getElementById('btn-onb-next').classList.remove('hide');
+                document.getElementById('btn-onb-start').classList.add('hide');
+            }
+        }
+
+        /* =========================================================================
+           MAIN MENU LOGIC
+           ========================================================================= */
+        function updateDashboard() {
+            document.getElementById('dash-name').innerText = appState.user.name;
+            document.getElementById('dash-class').innerText = appState.user.class;
+
+            // Visual locks
+            if(appState.progress.belajarComplete) {
+                const c2 = document.getElementById('card-bermain');
+                c2.classList.remove('opacity-70', 'bg-gray-100');
+                c2.classList.add('bg-white');
+                c2.innerHTML = c2.innerHTML.replace('text-gray-400', 'text-blue-500').replace('bg-gray-200', 'bg-blue-100').replace('fa-lock', 'fa-chevron-right text-blue-500');
+            }
+            if(appState.progress.bermainComplete) {
+                const c3 = document.getElementById('card-berlatih');
+                c3.classList.remove('opacity-70', 'bg-gray-100');
+                c3.classList.add('bg-white');
+                c3.innerHTML = c3.innerHTML.replace('text-gray-400', 'text-yellow-500').replace('bg-gray-200', 'bg-yellow-100').replace('fa-lock', 'fa-chevron-right text-yellow-500');
+            }
+        }
+
+        function confirmExit() {
+            playClick();
+            showDialog("Keluar", "Jika kamu merefresh atau menutup browser, progres belajarmu akan hilang. Lanjutkan perjuanganmu!");
+        }
+
+        function checkLock(type) {
+            playClick();
+            if(type === 'bermain' && !appState.progress.belajarComplete) {
+                showDialog("Terkunci 🔒", "Selesaikan menu 1. Belajar terlebih dahulu untuk membuka tantangan bermain.");
+                return;
+            }
+            if(type === 'berlatih' && !appState.progress.bermainComplete) {
+                showDialog("Terkunci 🔒", "Selesaikan menu 2. Bermain terlebih dahulu untuk membuka soal evaluasi.");
+                return;
+            }
+            startModule(type);
+        }
+
+        /* =========================================================================
+           MODULE ENGINE (Belajar / Bermain / Berlatih)
+           ========================================================================= */
+        function startModule(type) {
+            appState.currentModule = type;
+            appState.currentSlide = 0;
+            
+            if(type === 'belajar') document.getElementById('module-title').innerText = "Belajar Rantai Makanan";
+            if(type === 'bermain') {
+                appState.userAnswersBermain = new Array(dataBermain.length).fill(null);
+                document.getElementById('module-title').innerText = "Tantangan Literasi";
+            }
+            if(type === 'berlatih') {
+                appState.userAnswersBerlatih = new Array(dataBerlatih.length).fill(null);
+                document.getElementById('module-title').innerText = "Asesmen Akhir";
+            }
+
+            renderSlide();
+            nav('module');
+        }
+
+        function modNav(dir) {
+            playClick();
+            const arr = getActiveDataArray();
+            
+            // Validation before proceeding
+            if(dir === 1) {
+                if(appState.currentModule === 'belajar') {
+                    // Quiz must be passed in Belajar to go next
+                    const btnStatus = document.getElementById('mod-btn-next').dataset.locked;
+                    if(btnStatus === 'true') {
+                        showDialog("Belum Selesai", "Jawablah aktivitas interaktif di bawah materi dengan benar sebelum lanjut.");
+                        return;
+                    }
+                }
+                if(appState.currentModule === 'bermain' && appState.userAnswersBermain[appState.currentSlide] === null) {
+                    showDialog("Pilih Jawaban", "Pilih jawabanmu terlebih dahulu.");
+                    return;
+                }
+                if(appState.currentModule === 'berlatih' && appState.userAnswersBerlatih[appState.currentSlide] === null) {
+                    showDialog("Pilih Jawaban", "Selesaikan soal evaluasi ini terlebih dahulu.");
+                    return;
+                }
+            }
+
+            appState.currentSlide += dir;
+
+            // Check End of Module
+            if (appState.currentSlide >= arr.length) {
+                finishModule();
+                return;
+            }
+
+            // Boundary limits
+            if(appState.currentSlide < 0) appState.currentSlide = 0;
+            
+            renderSlide();
+        }
+
+        function getActiveDataArray() {
+            if(appState.currentModule === 'belajar') return dataBelajar;
+            if(appState.currentModule === 'bermain') return dataBermain;
+            return dataBerlatih;
+        }
+
+        function renderSlide() {
+            const content = document.getElementById('module-content');
+            const arr = getActiveDataArray();
+            const data = arr[appState.currentSlide];
+            
+            // Update Progress UI
+            document.getElementById('module-progress').innerText = `${appState.currentSlide + 1}/${arr.length}`;
+            document.getElementById('module-progress-bar').style.width = `${((appState.currentSlide + 1) / arr.length) * 100}%`;
+            
+            // Buttons logic
+            document.getElementById('mod-btn-prev').disabled = appState.currentSlide === 0;
+            const nextBtn = document.getElementById('mod-btn-next');
+            
+            if (appState.currentSlide === arr.length - 1) {
+                nextBtn.innerHTML = appState.currentModule === 'berlatih' ? 'Selesai & Cek Nilai <i class="fas fa-flag-checkered ml-1"></i>' : 'Selesai Modul <i class="fas fa-check-circle ml-1"></i>';
+                nextBtn.classList.remove('bg-emerald-600');
+                nextBtn.classList.add('bg-gold-500', 'hover:bg-gold-600');
+            } else {
+                nextBtn.innerHTML = 'Lanjut <i class="fas fa-chevron-right ml-1"></i>';
+                nextBtn.classList.add('bg-emerald-600');
+                nextBtn.classList.remove('bg-gold-500', 'hover:bg-gold-600');
+            }
+
+            // BELAJAR RENDER
+            if (appState.currentModule === 'belajar') {
+                nextBtn.dataset.locked = 'true'; // Lock by default until quiz passed
+                content.innerHTML = `
+                    <div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 animate-fade-in mb-6">
+                        <h3 class="text-2xl font-bold text-emerald-800 mb-4 border-b-2 border-emerald-100 pb-3">${data.title}</h3>
+                        <div class="text-gray-700 text-base md:text-lg leading-relaxed text-justify space-y-4">${data.content}</div>
+                    </div>
+                    
+                    <div class="bg-blue-50 rounded-2xl p-6 border border-blue-100 shadow-inner mt-4 animate-slide-up" style="animation-delay: 0.2s">
+                        <h4 class="text-lg font-bold text-blue-800 mb-3 flex items-center"><i class="fas fa-tasks mr-2 text-blue-500"></i>Aktivitas Pemahaman</h4>
+                        <p class="text-base md:text-lg text-gray-800 mb-5 font-medium leading-relaxed">${data.quiz.question}</p>
+                        <div class="space-y-3">
+                            ${data.quiz.options.map((opt, idx) => `
+                                <button onclick="checkBelajarQuiz(${idx}, ${opt.isCorrect})" class="w-full text-left p-4 rounded-xl border-2 border-gray-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-colors text-base md:text-lg text-gray-700 cursor-pointer shadow-sm group">
+                                    <span class="inline-block w-8 h-8 rounded-full bg-gray-100 text-center leading-8 font-bold text-gray-500 group-hover:bg-emerald-200 group-hover:text-emerald-700 mr-3">${['A','B','C'][idx]}</span>
+                                    ${opt.text}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <div id="quiz-feedback" class="mt-5 text-base md:text-lg font-bold hide p-4 rounded-xl text-center"></div>
+                    </div>
+                `;
+            } 
+            // BERMAIN RENDER
+            else if (appState.currentModule === 'bermain') {
+                const answeredIdx = appState.userAnswersBermain[appState.currentSlide];
+                
+                let motivasiBermain = ["Wah, cerita yang menarik!", "Ayo jadi detektif alam!", "Bacalah dengan saksama.", "Kamu hebat, terus maju!", "Petualangan seru menanti!", "Fokus pada petunjuknya!", "Sedikit lagi selesai!", "Semangat literasi!", "Alam menyimpan banyak rahasia.", "Buktikan kamu bisa!"][appState.currentSlide % 10];
+
+                content.innerHTML = `
+                    <div class="bg-gradient-to-r from-blue-100 to-blue-50 rounded-2xl p-5 mb-4 flex items-center justify-between border border-blue-200 shadow-sm relative overflow-hidden">
+                        <i class="fas fa-book-reader text-blue-300 text-5xl absolute -right-2 -top-2 opacity-20"></i>
+                        <div>
+                            <span class="text-sm font-bold text-blue-800 uppercase tracking-widest block mb-1">Misi Literasi ${appState.currentSlide + 1}</span>
+                            <span class="text-base font-medium text-blue-700"><i class="fas fa-lightbulb text-yellow-500 mr-2 text-sm"></i> ${motivasiBermain}</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 md:p-8 shadow-md border-t-4 border-blue-500 animate-fade-in mb-6 relative">
+                         <div class="absolute top-0 right-0 p-4 opacity-10 text-5xl text-blue-500"><i class="fas fa-scroll"></i></div>
+                        <p class="text-gray-800 text-base md:text-lg text-justify leading-loose font-serif">${data.stimulus}</p>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200 shadow-inner mt-4 animate-slide-up" style="animation-delay: 0.1s">
+                        <div class="flex items-start mb-5">
+                            <div class="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center mr-4 flex-shrink-0 mt-0.5 shadow-sm text-lg"><i class="fas fa-question"></i></div>
+                            <p class="font-bold text-gray-900 text-base md:text-lg leading-relaxed">${data.question}</p>
+                        </div>
+                        <div class="space-y-4" id="options-container">
+                            ${data.options.map((opt, idx) => {
+                                let isSelected = answeredIdx === idx;
+                                return `
+                                <button onclick="selectBermainAnswer(${idx})" id="opt-bermain-${idx}" class="w-full text-left p-5 rounded-2xl border-2 transition-all text-base md:text-lg shadow-sm ${isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5'} flex items-center group relative overflow-hidden">
+                                    <div class="w-10 h-10 rounded-full border-2 ${isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-300 text-gray-400 group-hover:border-blue-400 group-hover:text-blue-500'} flex items-center justify-center mr-4 font-bold text-sm transition-colors z-10 shadow-inner bg-white flex-shrink-0">
+                                        ${isSelected ? '<i class="fas fa-check text-lg"></i>' : ['A','B','C'][idx]}
+                                    </div>
+                                    <span class="flex-1 text-gray-800 font-medium z-10 leading-relaxed">${opt.text}</span>
+                                </button>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            // BERLATIH RENDER
+            else if (appState.currentModule === 'berlatih') {
+                const answeredIdx = appState.userAnswersBerlatih[appState.currentSlide];
+                
+                let badgeColor = data.level === 1 ? 'bg-blue-100 text-blue-700 border-blue-200' : 
+                                 data.level === 2 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
+                                 'bg-red-100 text-red-700 border-red-200';
+                let levelText = data.level === 1 ? 'L1: Dasar' : data.level === 2 ? 'L2: Aplikasi' : 'L3: HOTS';
+                let iconLvl = data.level === 1 ? 'fa-seedling' : data.level === 2 ? 'fa-tree' : 'fa-mountain';
+
+                let motivasi = ["Bismillah! Awali dengan doa.", "Kamu pasti bisa, baca teliti!", "Fokus dan yakini jawabanmu!", "Sedikit lagi, tetap semangat!", "Hebat! Pertahankan fokusmu.", "Analisis dengan jeli ya!", "Tarik napas, kerjakan tenang.", "Jangan terburu-buru.", "Setiap soal adalah tantangan seru!", "Satu langkah lagi menuju sukses!"][appState.currentSlide % 10];
+
+                content.innerHTML = `
+                    <div class="bg-gradient-to-r from-emerald-100 to-emerald-50 rounded-2xl p-5 mb-4 flex items-center justify-between border border-emerald-200 shadow-sm relative overflow-hidden">
+                        <i class="fas fa-star text-yellow-400 text-5xl absolute -right-2 -top-2 opacity-20 transform rotate-45"></i>
+                        <i class="fas fa-leaf text-emerald-300 text-4xl absolute -left-2 -bottom-2 opacity-40"></i>
+                        <div>
+                            <span class="text-sm font-bold text-emerald-800 uppercase tracking-widest block mb-1">Tantangan ${appState.currentSlide + 1}</span>
+                            <span class="text-base font-medium text-emerald-700"><i class="fas fa-quote-left text-emerald-400 mr-2 text-sm"></i> ${motivasi}</span>
+                        </div>
+                        <span class="text-sm font-bold px-4 py-2 rounded-xl shadow-sm bg-white border ${badgeColor} flex items-center">
+                            <i class="fas ${iconLvl} mr-2"></i> ${levelText}
+                        </span>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 md:p-8 shadow-md border-t-4 border-emerald-500 animate-fade-in mb-6 relative">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 text-5xl text-emerald-500"><i class="fas fa-question-circle"></i></div>
+                        <p class="text-gray-800 text-base md:text-lg text-justify leading-loose mb-6 font-serif">${data.stimulus}</p>
+                        <div class="bg-emerald-50 p-5 rounded-xl border border-emerald-100">
+                            <p class="font-bold text-gray-900 text-base md:text-lg leading-relaxed">${data.question}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4 animate-slide-up" style="animation-delay: 0.1s" id="options-container-berlatih">
+                        ${data.options.map((opt, idx) => {
+                            let textContent = typeof opt === 'string' ? opt : opt.text;
+                            let isSelected = answeredIdx === idx;
+                            return `
+                            <button onclick="selectBerlatihAnswer(${idx})" id="opt-berlatih-${idx}" class="w-full text-left p-5 rounded-2xl border-2 transition-all duration-300 text-base md:text-lg shadow-sm ${isSelected ? 'border-emerald-500 bg-emerald-50 scale-[1.02] shadow-md ring-1 ring-emerald-300' : 'border-gray-200 bg-white hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5'} flex items-center group relative overflow-hidden">
+                                <div class="absolute inset-0 bg-gradient-to-r from-emerald-100 to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-300 ${isSelected ? 'opacity-30' : ''}"></div>
+                                <div class="w-10 h-10 rounded-full border-2 ${isSelected ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-gray-300 text-gray-400 group-hover:border-emerald-400 group-hover:text-emerald-500'} flex items-center justify-center mr-4 font-bold text-base transition-all z-10 shadow-inner bg-white flex-shrink-0">
+                                    ${['A','B','C'][idx]}
+                                </div>
+                                <span class="flex-1 text-gray-800 font-medium z-10 leading-relaxed">${textContent}</span>
+                                ${isSelected ? '<i class="fas fa-check-circle text-emerald-500 text-2xl z-10 ml-3 animate-fade-in"></i>' : ''}
+                            </button>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            // Scroll to top of content
+            content.scrollTop = 0;
+        }
+
+        /* Interactivity Functions */
+        window.checkBelajarQuiz = function(idx, isCorrect) {
+            const fb = document.getElementById('quiz-feedback');
+            fb.classList.remove('hide');
+            if(isCorrect) {
+                playCorrect();
+                fb.className = "mt-4 text-sm font-bold p-3 rounded-xl text-center bg-green-100 text-green-800 border border-green-200 animate-pulse-slow";
+                fb.innerHTML = `<i class="fas fa-check-circle mr-2"></i> ${dataBelajar[appState.currentSlide].quiz.feedback}`;
+                document.getElementById('mod-btn-next').dataset.locked = 'false';
+            } else {
+                playWrong();
+                fb.className = "mt-4 text-sm font-bold p-3 rounded-xl text-center bg-red-50 text-red-700 border border-red-200";
+                fb.innerHTML = `<i class="fas fa-times-circle mr-2"></i> Belum tepat. Silakan baca lagi materi di atas dengan teliti.`;
+            }
+        };
+
+        window.selectBermainAnswer = function(idx) {
+            appState.userAnswersBermain[appState.currentSlide] = idx;
+            // Immediate Feedback visual for Bermain
+            const data = dataBermain[appState.currentSlide];
+            const isCorrect = data.options[idx].isCorrect;
+            
+            if(isCorrect) {
+                playCorrect();
+            } else {
+                playWrong();
+            }
+            
+            // Re-render to show selection
+            renderSlide(); 
+            
+            const btn = document.getElementById(`opt-bermain-${idx}`);
+            if(isCorrect) {
+                btn.classList.remove('border-blue-500', 'bg-blue-50', 'ring-blue-200');
+                btn.classList.add('bg-green-50', 'border-green-500', 'ring-2', 'ring-green-200');
+                btn.querySelector('.w-8').classList.remove('bg-blue-500', 'border-blue-500');
+                btn.querySelector('.w-8').classList.add('bg-green-500', 'border-green-500');
+            } else {
+                btn.classList.remove('border-blue-500', 'bg-blue-50', 'ring-blue-200');
+                btn.classList.add('bg-red-50', 'border-red-500', 'ring-2', 'ring-red-200');
+                btn.querySelector('.w-8').classList.remove('bg-blue-500', 'border-blue-500');
+                btn.querySelector('.w-8').classList.add('bg-red-500', 'border-red-500', 'text-white');
+                btn.querySelector('.w-8').innerHTML = '<i class="fas fa-times"></i>';
+                // show right answer
+                const correctIdx = data.options.findIndex(o => o.isCorrect);
+                const correctBtn = document.getElementById(`opt-bermain-${correctIdx}`);
+                correctBtn.classList.add('border-green-500', 'border-dashed', 'bg-green-50');
+                correctBtn.querySelector('.w-8').classList.add('text-green-600', 'border-green-500');
+            }
+            
+            // disable buttons after answer
+            const container = document.getElementById('options-container');
+            container.style.pointerEvents = 'none';
+        };
+
+        window.selectBerlatihAnswer = function(idx) {
+            playClick();
+            appState.userAnswersBerlatih[appState.currentSlide] = idx;
+            renderSlide(); // Just re-render selection, no immediate feedback for exam
+        };
+
+        function finishModule() {
+            if(appState.currentModule === 'belajar') {
+                appState.progress.belajarComplete = true;
+                showDialog("Modul Selesai!", "Alhamdulillah, kamu telah menyelesaikan materi. Menu BERMAIN sekarang telah TERBUKA.");
+                nav('mainmenu');
+            }
+            else if(appState.currentModule === 'bermain') {
+                appState.progress.bermainComplete = true;
+                // calculate score
+                let correct = 0;
+                appState.userAnswersBermain.forEach((ansIdx, i) => {
+                    if(dataBermain[i].options[ansIdx].isCorrect) correct++;
+                });
+                appState.scores.bermain = correct;
+                
+                showDialog("Tantangan Selesai!", `Luar biasa! Kamu menjawab benar ${correct} dari 10 soal literasi. Menu BERLATIH (Asesmen) sekarang TERBUKA.`);
+                nav('mainmenu');
+            }
+            else if(appState.currentModule === 'berlatih') {
+                appState.progress.berlatihComplete = true;
+                calculateBerlatihScore();
+                sendDataToGAS(); // Memanggil fungsi untuk mengirim data ke Google Sheets
+                nav('report');
+            }
+        }
+
+        /* =========================================================================
+           GAS INTEGRATION (MENGIRIM DATA KE GOOGLE SHEETS)
+           ========================================================================= */
+        
+        function extractSoalData() {
+            let soalArray = [];
+            dataBermain.forEach((item, idx) => {
+                let optionsText = item.options.map(o => o.text).join(" \n ");
+                let answerText = item.options.find(o => o.isCorrect).text;
+                soalArray.push(["Bermain", idx+1, item.stimulus + "\n\n" + item.question, optionsText, answerText]);
+            });
+            dataBerlatih.forEach((item, idx) => {
+                let optionsText = item.options.map(o => typeof o === 'string' ? o : o.text).join(" \n ");
+                let answerText = "";
+                if (item.answer !== undefined) {
+                    answerText = typeof item.options[item.answer] === 'string' ? item.options[item.answer] : item.options[item.answer].text;
+                } else {
+                    let corr = item.options.find(o => o.isCorrect);
+                    answerText = corr ? corr.text : "";
+                }
+                soalArray.push(["Berlatih", idx+1, item.stimulus + "\n\n" + item.question, optionsText, answerText]);
+            });
+            return soalArray;
+        }
+
+        function sendDataToGAS() {
+            if (GAS_URL === "URL_GAS_ANDA_DISINI") {
+                console.warn("GAS_URL belum diatur. Data tidak dikirim ke server.");
+                return;
+            }
+
+            // Calculate Bermain stats
+            let benarBermain = appState.scores.bermain;
+            let salahBermain = 10 - benarBermain;
+            let detailBermainArr = [];
+            appState.userAnswersBermain.forEach((ansIdx, i) => {
+                let isCorrect = dataBermain[i].options[ansIdx].isCorrect;
+                detailBermainArr.push(`Soal ${i+1}: ${isCorrect ? 'Benar' : 'Salah'}`);
+            });
+
+            // Calculate Berlatih stats
+            let benarBerlatih = 0;
+            let salahBerlatih = 0;
+            let detailBerlatihArr = [];
+            appState.userAnswersBerlatih.forEach((ansIdx, i) => {
+                let data = dataBerlatih[i];
+                let isCorrect = false;
+                if(typeof data.options[0] === 'string') {
+                    if(ansIdx === data.answer) isCorrect = true;
+                } else {
+                    if(data.options[ansIdx].isCorrect) isCorrect = true;
+                }
+                if (isCorrect) benarBerlatih++; else salahBerlatih++;
+                detailBerlatihArr.push(`Soal ${i+1}: ${isCorrect ? 'Benar' : 'Salah'}`);
+            });
+
+            let payload = {
+                action: "save_hasil",
+                nama: appState.user.name,
+                kelas: appState.user.class,
+                benarBermain: benarBermain,
+                salahBermain: salahBermain,
+                benarBerlatih: benarBerlatih,
+                salahBerlatih: salahBerlatih,
+                detailBermain: detailBermainArr.join(" | "),
+                detailBerlatih: detailBerlatihArr.join(" | "),
+                soalData: extractSoalData() // Data ini akan memicu GAS membuat daftar soal jika sheet-nya masih kosong
+            };
+
+            // Fetch request as text/plain to avoid tricky CORS preflight constraints in GAS
+            fetch(GAS_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(payload)
+            }).then(res => console.log("Progres berhasil disimpan ke server."))
+              .catch(err => console.error("Error menyinkronkan data dengan server:", err));
+        }
+
+        /* =========================================================================
+           REPORT & SCORING LOGIC
+           ========================================================================= */
+        function calculateBerlatihScore() {
+            let s = { l1: 0, l2: 0, l3: 0, total: 0 };
+            
+            appState.userAnswersBerlatih.forEach((ansIdx, i) => {
+                const data = dataBerlatih[i];
+                let isCorrect = false;
+                
+                // Handle different object structures in dataBerlatih options (strings vs objects for HOTS)
+                if(typeof data.options[0] === 'string') {
+                    if(ansIdx === data.answer) isCorrect = true;
+                } else {
+                    if(data.options[ansIdx].isCorrect) isCorrect = true;
+                }
+
+                if(isCorrect) {
+                    if(data.level === 1) s.l1 += data.poin;
+                    if(data.level === 2) s.l2 += data.poin;
+                    if(data.level === 3) s.l3 += data.poin;
+                    s.total += data.poin;
+                }
+            });
+            appState.scores.berlatih = s;
+        }
+
+        function generateReportDOM() {
+            document.getElementById('rep-name').innerText = appState.user.name;
+            document.getElementById('rep-class').innerText = appState.user.class;
+            document.getElementById('rep-date').innerText = appState.user.date;
+            document.getElementById('rep-sign-date').innerText = appState.user.date;
+
+            document.getElementById('rep-bermain-score').innerText = `${appState.scores.bermain}/10`;
+            
+            const l = appState.scores.berlatih;
+            document.getElementById('rep-final-score').innerText = l.total;
+            document.getElementById('rep-l1-score').innerText = l.l1;
+            document.getElementById('rep-l2-score').innerText = l.l2;
+            document.getElementById('rep-l3-score').innerText = l.l3;
+
+            let predikat = "";
+            if(l.total >= 90) predikat = "Sangat Baik! Siswa menunjukkan penalaran kritis (HOTS) yang luar biasa dan pemahaman utuh mengenai ciptaan Allah. Pertahankan kecintaanmu pada ilmu dan alam!";
+            else if(l.total >= 75) predikat = "Baik. Siswa memahami konsep dasar dan penerapannya di lingkungan lokal. Perbanyak literasi studi kasus untuk meningkatkan kemampuan analisis tingkat tinggi.";
+            else predikat = "Perlu Bimbingan. Teruslah bersemangat belajar. Ingatlah bahwa mempelajari ilmu alam adalah cara kita lebih mengenal Sang Pencipta.";
+            
+            document.getElementById('rep-predikat').innerText = `"${predikat}"`;
+        }
+
+        function downloadPDF() {
+            playClick();
+            const element = document.getElementById('pdf-content');
+            
+            // Adjust styles specifically for generation
+            element.classList.remove('shadow-lg', 'md:shadow-2xl');
+            
+            const opt = {
+                margin:       [0.5, 0.5, 0.5, 0.5],
+                filename:     `Laporan_IPA_${appState.user.name.replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Loading state
+            showDialog("Memproses PDF", "Mohon tunggu sebentar, sistem sedang menyiapkan laporanmu...");
+            
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.classList.add('shadow-lg', 'md:shadow-2xl'); // restore
+                closeDialog();
+            }).catch(err => {
+                console.error(err);
+                closeDialog();
+                // Fallback to print
+                window.print();
+            });
+        }
+
+        // Initialize App
+        window.onload = init;
+
+    </script>
+</body>
+</html>
